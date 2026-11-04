@@ -193,7 +193,6 @@ func Connect(servers []string, sessionTimeout time.Duration, options ...connOpti
 	ec := make(chan Event, eventChanSize)
 	conn := &Conn{
 		dialer:         net.DialTimeout,
-		hostProvider:   &DNSHostProvider{},
 		conn:           nil,
 		state:          StateDisconnected,
 		eventChan:      ec,
@@ -207,10 +206,26 @@ func Connect(servers []string, sessionTimeout time.Duration, options ...connOpti
 		logInfo:        true, // default is true for backwards compatability
 		buf:            make([]byte, bufferSize),
 	}
+	conn.hostProvider = &DNSHostProvider{
+		lookupHost: func(host string) ([]string, error) {
+			if conn.logInfo {
+				conn.logger.Printf("Resolving host %q", host)
+			}
+			addrs, err := net.LookupHost(host)
+			if err != nil || conn.logInfo {
+				conn.logger.Printf("Host lookup result: host=%q ips=%q err=%v", host, addrs, err)
+			}
+			return addrs, err
+		},
+	}
 
 	// Set provided options.
 	for _, option := range options {
 		option(conn)
+	}
+
+	if conn.logInfo {
+		conn.logger.Printf("Connect: servers=%q", servers)
 	}
 
 	if err := conn.hostProvider.Init(srvs); err != nil {

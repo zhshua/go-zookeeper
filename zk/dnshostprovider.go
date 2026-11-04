@@ -15,7 +15,7 @@ type DNSHostProvider struct {
 	servers    []string
 	curr       int
 	last       int
-	lookupHost func(string) ([]string, error) // Override of net.LookupHost, for testing.
+	lookupHost func(string) ([]string, error) // Optional override of net.LookupHost.
 }
 
 // Init is called first, with the servers specified in the connection
